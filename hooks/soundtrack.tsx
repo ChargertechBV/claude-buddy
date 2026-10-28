@@ -17,7 +17,7 @@ import { addNote, loadNotes, notesOf, notesScopeOf, removeNotes, toggleNotesScop
 import { EQ_KEY, PANE, PET_KEY, clock, ctx, fit, isRecord, parse, positionOf, say, shortCwd, statusOf } from './shared'
 import type { $ } from './shared'
 import { loadSections, registerShortcuts, runShortcut, sectionsOf, soundtrackCommand } from './soundtrack-commands'
-import { clearProgress, control, generate, hasApiOf, nowPlayingOf, openUri, playContext, playlistsOf, pollNow, refreshPlaylists, setVolume } from './spotify'
+import { clearProgress, control, defaultPlaylistUri, generate, hasApiOf, nowPlayingOf, openUri, playContext, playlistsOf, pollNow, refreshPlaylists, setVolume, showDefaultPlaylists } from './spotify'
 import { detectDiff, limitsText, modelsText, refreshTelemetry, tallyTokens, telemetryOf, usageLimits, warnPastLimits } from './telemetry'
 
 const TELEMETRY_MS = 5_000
@@ -79,6 +79,7 @@ export async function startSoundtrack($: $, e: SessionStartInput) {
   await loadDrinks($)
 
   void $.ui.open({ id: PANE, title: 'Soundtrack' }).catch(() => undefined)
+  await showDefaultPlaylists($)
   void pollNow($)
     .then(() => refreshPlaylists($, false))
     .catch(() => undefined)
@@ -277,7 +278,7 @@ export const registerSoundtrack = (on: On) => {
             <Select
               key="playlist"
               label={signedIn ? 'play' : 'open'}
-              value={np && np.contextUri && lists.some(one => one.uri === np.contextUri) ? np.contextUri : undefined}
+              value={np && np.contextUri && lists.some(one => one.uri === np.contextUri) ? np.contextUri : (defaultPlaylistUri() ?? undefined)}
               options={lists.map(one => ({ value: one.uri, label: one.name }))}
               onSelect={value => {
                 const hit = lists.find(one => one.uri === value)

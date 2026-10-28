@@ -2,6 +2,8 @@
 
 Your terminal pet, back for good, and the Soundtrack pane it lives in. One Claude Code mod.
 
+**A playlist comes along.** The pane offers one public Spotify playlist of its own, [brain.md](https://open.spotify.com/playlist/3lqHyrWCYZfwj45VwLElEE), the one the mod was built to. It sits first in the playlist picker, next to your own playlists. Nothing plays unless you pick it, and it is never added to your Spotify library.
+
 ## Works best on
 
 - **WSL on Windows, with Python on the Windows side**: everything, including the live equaliser, which captures what Windows plays, and the beat tracking built on it. Sound effects and speech go through Windows.
@@ -29,7 +31,7 @@ What it shows
 - **Beat**: the kick band's energy is tracked and a tempo is estimated from its autocorrelation over eight seconds, 65 to 200 bpm, weighted towards a preferred tempo (140 by default, `/soundtrack beat prefer 150`) and held until a rival clearly wins. Once known, the artists line shows it, the progress row ends with a pulse that flashes on each kick and a four-count, and a beat grid nudged by each kick keeps the phase. `/soundtrack beat 120` sets how far ahead of the captured audio the pulse is drawn; `/soundtrack beat` reports the lead, the pipeline delay and the kick count. The count starts from the first kick heard, not the bar line.
 - **The pet**: the pet on duty is drawn beside the controls: hat, blink, speech bubble, cape, shiny colours. On the beat it dances by the track's energy: a slow sway on quiet tracks, a bounce and sway on most, and on hard ones a bounce every beat with the head thrown the other way and sparks on the downbeats. `h` pets it. The band above the prompt is off by default now that the pet lives here; `/buddy show` brings it back, `/buddy hide` tucks it away again.
 - **Controls**: `p` play or pause, `n` next, `o` opens the track in the Spotify app, `q` and `l` step the volume by five. From the prompt: `/soundtrack play` resumes, `/soundtrack pause`, `/soundtrack skip`, `/soundtrack skip back`, `/soundtrack volume 40`, `/soundtrack volume +10`. Playback and volume control need Spotify Premium; reading works on Free.
-- **Playlists**: a picker over every playlist in your library, showing the one playing. Picking one, or `/soundtrack play <name>`, starts it on your active device; with no active device the Spotify app is opened on it and you press play once. `r` refreshes, `/soundtrack play list` lists them.
+- **Playlists**: a picker over the built-in brain.md and every playlist in your library, showing the one playing, or brain.md when nothing plays from a listed one. Picking one, or `/soundtrack play <name>`, starts it on your active device; with no active device the Spotify app is opened on it and you press play once. `r` refreshes, `/soundtrack play list` lists them.
 - **Vibe**: type a mood in the vibe field, or `/soundtrack vibe <mood>`, and Spotify generates a private playlist which the mod starts. `/soundtrack vibe clean` removes the ones it made. Generating goes through the claude.ai connector and needs Premium.
 - **Notes**: a field at the bottom. Enter saves a note with the time and the current track; `/soundtrack note <text>` does the same from the prompt. Notes are kept per project folder, `g` toggles a view across every folder, each row ends in a `×` that removes it, and `/soundtrack notes`, `notes global`, `notes rm <n>`, `notes rm last` and `notes clear yes` work from the prompt. Two sessions can run at once: notes merge rather than overwrite.
 - **Cups**: coffee, tea and water today, with the water goal as a bar. `c`, `t` and `w` add a cup, as do `/soundtrack drink coffee`, `drink tea 2` and `drink water`; `drink water -1` or `drink undo` takes one back, `drink goal 10` sets the daily water goal (8 by default), and `/soundtrack drinks` shows the last seven days and their averages. A toast marks the water goal once a day. Counts live in the store per local day, so every session adds to the same tally.
@@ -39,8 +41,6 @@ What it shows
 - **Choosing sections**: now playing is always drawn; playlists, notes, drinks, session and usage can each be dropped so the pane fits a short screen. `/soundtrack hide notes`, `/soundtrack show usage`, `/soundtrack hide all` and `/soundtrack sections` to see the choice, which is remembered across sessions.
 - **Soundtrack log**: the session's tracks are logged. `/soundtrack playlist` asks Spotify for a playlist of what played during your longest stretch without a failing tool call.
 - **The pet hears the music**: the strip publishes the playing state, the kick-band energy and the tempo under `buddy.music`; the pet bobs to it, gets excited over heavy bass, and remarks on a new track now and then.
-
-The playlist it was built to, public for anyone who wants the same soundtrack: [brain.md](https://open.spotify.com/playlist/3lqHyrWCYZfwj45VwLElEE).
 
 ## Install
 

@@ -79,7 +79,7 @@ function seeded(values: Record<string, unknown>) {
 }
 
 /** A Spotify Web API that answers the player and the playlists; records every call. */
-function spotify(on: On, calls: { method: string; url: string; body?: string }[]) {
+function spotify(on: On, calls: { method: string; url: string; body?: string }[], playlistsText = PLAYLISTS) {
   mock.env(on, { HOME: '/home/test' })
   mock.store(on)
   on('fs.read', () => ({ value: AUTH }))
@@ -92,7 +92,7 @@ function spotify(on: On, calls: { method: string; url: string; body?: string }[]
     if (e.url.includes('/me/player/devices')) return { value: { status: 200, ok: true, headers, text: JSON.stringify({ devices: [{ id: 'dev1', name: 'DESKTOP', is_active: true }] }) } }
     if (e.url.includes('/me/player/play')) return { value: { status: 204, ok: true, headers: {}, text: '' } }
     if (e.url.includes('/me/player')) return { value: { status: 200, ok: true, headers, text: PLAYER } }
-    if (e.url.includes('/me/playlists')) return { value: { status: 200, ok: true, headers, text: PLAYLISTS } }
+    if (e.url.includes('/me/playlists')) return { value: { status: 200, ok: true, headers, text: playlistsText } }
     return { value: { status: 404, ok: false, headers, text: '{"error":{"status":404,"message":"nope"}}' } }
   })
 }
@@ -541,4 +541,40 @@ test('an install that already has Soundtrack data keeps its short commands', asy
   await time.settle()
   expect(store['soundtrack:shortcuts']).toBe(true)
   for (const name of ['play', 'pause', 'skip', 'volume', 'vibe', 'note', 'notes', 'drink']) expect(registered).toContain(name)
+})
+
+test('another Spotify account still gets brain.md first in the picker, ahead of its own playlists', async ($, on) => {
+  const time = clock(on)
+  const calls: { method: string; url: string; body?: string }[] = []
+  const theirs = JSON.stringify({
+    items: [{ uri: 'spotify:playlist:0000000000000000000001', name: 'Road trip', owner: { display_name: 'Someone' }, external_urls: {} }],
+    next: null,
+  })
+  spotify(on, calls, theirs)
+  const state = liveState(on)
+
+  await $.session.start({ cwd: '/work', surface: 'terminal', isInteractive: true })
+  await time.settle()
+  const lists = state.playlists as { value: { name: string; uri: string }[] }
+  expect(lists.value.map(one => one.name)).toEqual(['brain.md', 'Road trip'])
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  const select = await ui.find({ type: 'Select', key: 'playlist' })
+  expect(select?.props.value).toBe('spotify:playlist:3lqHyrWCYZfwj45VwLElEE')
+  await ui.unmount()
+  expect((await $.command.run(run('play brain'))).text).toContain('brain.md')
+  const play = calls.find(one => one.method === 'PUT' && one.url.endsWith('/me/player/play'))
+  expect(play?.body).toBe(JSON.stringify({ context_uri: 'spotify:playlist:3lqHyrWCYZfwj45VwLElEE' }))
+})
+
+test('with no Spotify connection at all, the picker still offers brain.md', async ($, on) => {
+  const time = clock(on)
+  const store: Record<string, unknown> = {}
+  startable(on, store)
+  const state = liveState(on)
+
+  await $.session.start({ cwd: '/work', surface: 'terminal', isInteractive: true })
+  await time.settle()
+  const lists = state.playlists as { value: { name: string }[] }
+  expect(lists.value.map(one => one.name)).toEqual(['brain.md'])
+  expect(store['soundtrack:playlists']).toBeUndefined()
 })

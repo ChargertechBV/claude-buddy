@@ -19,6 +19,31 @@ const POLL_CONNECTOR_MS = 15_000
 const AUTH_RECHECK_MS = 60_000
 const PLAYLIST_CACHE_MS = 6 * 60 * 60 * 1000
 
+/**
+ * The playlists every install offers, first in the picker, whether or not they
+ * are in the listener's own library. Public, so any Spotify account plays them.
+ */
+const DEFAULT_PLAYLISTS: readonly Playlist[] = [
+  { uri: 'spotify:playlist:3lqHyrWCYZfwj45VwLElEE', name: 'brain.md', owner: '', url: 'https://open.spotify.com/playlist/3lqHyrWCYZfwj45VwLElEE' },
+]
+
+/** The library with the built-in playlists in front, each listed once: the library's own entry wins where it has one. */
+function withDefaults(list: readonly Playlist[]): Playlist[] {
+  const first = DEFAULT_PLAYLISTS.map(one => list.find(own => own.uri === one.uri) ?? one)
+  return [...first, ...list.filter(own => !DEFAULT_PLAYLISTS.some(one => one.uri === own.uri))]
+}
+
+/** The playlist the picker offers when nothing plays from a listed one: the first built-in. */
+export function defaultPlaylistUri(): string | null {
+  return DEFAULT_PLAYLISTS[0]?.uri ?? null
+}
+
+/** Puts the built-in playlists in the picker at session start, before the library has loaded. */
+export async function showDefaultPlaylists($: $) {
+  const held = await read($, playlists)
+  if (held.length === 0) await update($, playlists, () => withDefaults([]))
+}
+
 // Session values the pane draws from. Change a tag when its fields change: an
 // earlier version's value, which outlives a reload, is then read as absent.
 const nowPlaying = atom({ plugin: 'buddy', key: 'nowPlaying' } as const, null, { shape: 'np-4' })
@@ -529,17 +554,19 @@ export async function refreshPlaylists($: $, force: boolean) {
   const now = await $.clock.now()
   const cached = await $.store.get('soundtrack:playlists')
   if (!force && isRecord(cached) && typeof cached.at === 'number' && Array.isArray(cached.list) && now - cached.at < PLAYLIST_CACHE_MS) {
-    await update($, playlists, () => cached.list as Playlist[])
+    await update($, playlists, () => withDefaults(cached.list as Playlist[]))
     if (cached.list.length > 0) return
   }
   const viaApi = (await loadAuth($, now)) !== null ? await fetchPlaylistsApi($) : null
   const list = viaApi ?? (await fetchPlaylistsConnector($))
   if (list === null || list.length === 0) {
-    if (force) await say($, 'Spotify listed no playlists.')
+    await update($, playlists, () => withDefaults([]))
+    if (force) await say($, 'Spotify listed no playlists of yours; the built-in ones stay.')
     return
   }
+  // The cache holds the library alone, so a later version's built-ins replace this one's.
   await $.store.set('soundtrack:playlists', { at: now, list })
-  await update($, playlists, () => list)
+  await update($, playlists, () => withDefaults(list))
   if (force) await say($, `${list.length} playlists loaded.`)
 }
 
