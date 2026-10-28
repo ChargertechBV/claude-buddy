@@ -96,7 +96,8 @@ function barColor(level: number, levels: number, x: number, palette: Palette): n
 function depthColor(h: number, depth: number, x: number): number {
   const hue = 35 + x * 240 + depth * 25
   // Loud is bright, not pale: the hue stays saturated and only the top of a peak goes towards white.
-  const value = (0.55 + 0.45 * h) * (1 - depth * 0.62)
+  // A wide range from quiet to loud, since Claude Code draws a Raster in 16 steps per channel.
+  const value = (0.3 + 0.7 * Math.sqrt(h)) * (1 - depth * 0.62)
   const peak = Math.max(0, h - 0.85) / 0.15
   const sat = (0.9 + depth * 0.1) * (1 - peak * 0.45 * (1 - depth))
   return hsv(hue % 360, Math.max(0.05, Math.min(1, sat)), Math.min(1, value + peak * 0.1))
@@ -323,7 +324,8 @@ function drawRidge(words: Uint32Array, columns: number, area: number, across: nu
     // The front slice is a bar up to its contour, in the body shade; the contour drawn after takes the cells it touches.
     if (t === 0) {
       for (const pt of pts) {
-        const body = dim(depthColor(pt.h, 0, (pt.x - xShift) / Math.max(1, across * 2 - 1)), 0.45)
+        // Darker than the line, and darker still where it is quiet, so loudness reads in the body too.
+        const body = dim(depthColor(pt.h, 0, (pt.x - xShift) / Math.max(1, across * 2 - 1)), 0.3 + 0.35 * pt.h)
         for (let y = pt.y + 1; y <= baseDot; y++) setDot(pt.x, y, body)
       }
     }
