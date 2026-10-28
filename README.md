@@ -89,3 +89,7 @@ The Soundtrack pane:
 Each atom is declared in the one file that writes it; other files read it through that file's `…Of($)` function, since the engine reads and writes an atom only where it is declared.
 
 Tests: `claude plugin test .` runs them. `tests/beat.test.ts` checks the tempo on synthetic kicks and on a recorded clip in `tests/fixtures/`.
+
+## License
+
+MIT, in [LICENSE](LICENSE): anyone may use, copy, change and share the mod, as long as the license text goes with it. It comes as is, without any warranty, and its authors are not liable for anything that comes from using it.
