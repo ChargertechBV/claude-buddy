@@ -1,6 +1,6 @@
 {
   "name": "buddy",
-  "version": "0.2.0",
-  "description": "Your terminal pet, back for good, now living in a Soundtrack pane beside the chat: what Spotify is playing with a live equaliser the pet dances to, playback and volume controls, your playlists, vibe-generated playlists, notes stamped with the track, and the session's own telemetry. The pet still hatches, levels up, gets hungry, naps, judges your prompts and keeps its diary.",
+  "version": "0.3.0",
+  "description": "Your terminal pet, back for good, now living in a Soundtrack pane beside the chat: what Spotify is playing with a live equaliser the pet dances to, playback and volume controls, your playlists, vibe-generated playlists, notes stamped with the track, a coffee, tea and water tracker, the session's telemetry and your plan usage. The pet still hatches, levels up, gets hungry, naps, judges your prompts and keeps its diary.",
   "types": "./types/index.d.ts"
 }

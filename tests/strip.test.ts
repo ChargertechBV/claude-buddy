@@ -1,5 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
+import { frameDelay } from '../hooks/eq'
 import { DEPTH, EQ_ROWS, PALETTES, VIEWS, barsFor, sliceWidth, stripCells, stripRows } from '../hooks/strip'
 
 const COLUMNS = 58
@@ -42,4 +43,12 @@ test('the 3D and ridge views take fewer bars than columns and leave the recessio
   expect(sliceWidth(COLUMNS)).toBe(COLUMNS - DEPTH)
   expect(stripRows('3d')).toBe(stripRows('bars') + DEPTH / 2)
   expect(stripRows('ridge')).toBe(stripRows('3d'))
+})
+
+test('the frame loop runs at full rate with live audio, smoothly while guessing or settling, and slowly at rest', () => {
+  expect(frameDelay({ isShown: true, isLive: true, isGuessing: false, isSettling: false })).toBe(16)
+  expect(frameDelay({ isShown: true, isLive: false, isGuessing: true, isSettling: false })).toBe(33)
+  expect(frameDelay({ isShown: true, isLive: false, isGuessing: false, isSettling: true })).toBe(33)
+  expect(frameDelay({ isShown: true, isLive: false, isGuessing: false, isSettling: false })).toBe(250)
+  expect(frameDelay({ isShown: false, isLive: true, isGuessing: false, isSettling: false })).toBe(1000)
 })

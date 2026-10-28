@@ -69,7 +69,7 @@ function engine(on: On, entries: Record<string, unknown> = {}, reply = SOUL, mes
     return { value: { isPlaced: true } }
   })
   on('ui.close', () => ({ value: undefined }))
-  on('audio.speak', () => ({ value: { synthesizer: 'none' } }))
+  on('audio.speak', () => ({ value: { via: 'system' as const } }))
   on('turn.complete', () => ({ text: '' }))
   on('session.usage', () => {
     const percent = extra.percent ?? 10
@@ -183,7 +183,11 @@ test('a pet loaded from the store greets you and frets over failing tools', asyn
   await start($)
 
   const band = await $.ui.mount({ ...BAND, surface: 'terminal' })
-  expect(await band.find({ type: 'Text', text: /2 days|back|remember/, in: 'pet' })).toBeDefined()
+  // Any welcome-back line will do, {days} filled in as 2 and {species} as whatever the seed rolled.
+  const escape = (t: string) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const welcome = [...QUIPS.welcomeBack!.sweet, ...QUIPS.welcomeBack!.snark].map(line => new RegExp(escape(line).replace(/\\\{days\\\}/g, '2').replace(/\\\{species\\\}/g, '[\\w -]+')))
+  const greeted = (await band.findAll({ type: 'Text', in: 'pet' })).map(t => t.text)
+  expect([...greeted, greeted.join(' ')].some(text => welcome.some(line => line.test(text)))).toBe(true)
 
   for (const id of ['a', 'b', 'c']) {
     const ran = await $.tool.call({ tool: 'Bash', tool_use_id: id, command: 'false' } as never)
@@ -478,7 +482,7 @@ test('/buddy visit brings another pet over, who wanders off after three minutes'
 })
 
 test('at level 10 a pet evolves and wears a cape', async ($, on) => {
-  const entries = full()
+  const entries: Record<string, unknown> = full()
   for (let i = 0; i < 10; i++) entries[`xp:t${i}`] = 944
   const { toasts } = engine(on, entries)
   on('prompt.submit', (_$, e) => ({ text: e.text }))

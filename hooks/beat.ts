@@ -219,6 +219,28 @@ export const kicksInLast = (ms: number): number => {
   return onsets.filter(t => at - t < ms).length
 }
 
+/**
+ * Forgets everything heard: the energies, the kicks, the tempo, the grid and
+ * the helper's clock. A helper that starts again counts its stamps from zero,
+ * so the clock it is synced to must be learned afresh.
+ */
+export const resetBeat = () => {
+  bassShort = 0
+  bassLong = 0
+  bassLastAt = 0
+  bassPrev = 0
+  fluxAvg = 0
+  onsets = []
+  fluxLog = []
+  bpm = null
+  clockOffset = null
+  clockOffsetAt = 0
+  gridAnchor = null
+  gridPeriod = null
+  gridLastKick = 0
+  gridBeats = 0
+}
+
 export const beatLead = (): number => leadMs
 export const setBeatLead = (ms: number) => {
   leadMs = Math.max(-500, Math.min(1000, Math.round(ms)))

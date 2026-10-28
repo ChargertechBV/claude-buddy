@@ -164,6 +164,8 @@ export type Telemetry = {
   files: { path: string; plus: number; minus: number }[]
   filesTotal: number
   helper: { rate: number; errors: number; status: 'starting' | 'running' | 'stopped' }
+  /** Strip frames drawn per second: up to 60 with live audio, 30 for the guessed animation or falling bars, 4 at rest. */
+  fps: number
   /** Whether this build has a /diff command to open from the pane. */
   hasDiff: boolean
   /** The account's rate-limit windows as the last response reported them: five-hour first, then seven-day; empty off a subscription. */
@@ -197,11 +199,21 @@ export type UsageLimit = {
 export type Sections = {
   playlists: boolean
   notes: boolean
+  /** The cups tracker: coffee, tea and water today. */
+  drinks: boolean
   /** Context, cost, call rate, edited files and the capture helper. */
   session: boolean
   /** The plan's five-hour and weekly windows. */
   usage: boolean
 }
+
+export type DrinkKind = 'coffee' | 'tea' | 'water'
+
+/** Cups of each kind on one local day, `2026-10-28`. */
+export type DrinkDay = { day: string; coffee: number; tea: number; water: number }
+
+/** The cups tracker as the pane shows it: today, the last seven days ending today, and the daily water goal. */
+export type Drinks = { today: DrinkDay; week: DrinkDay[]; waterGoal: number }
 
 declare module 'claude-code' {
   interface PluginState {
@@ -226,6 +238,7 @@ declare module 'claude-code' {
       telemetry: Shaped<Telemetry | null>
       music: Shaped<Music | null>
       sections: Shaped<Sections>
+      drinks: Shaped<Drinks | null>
     }
   }
 }

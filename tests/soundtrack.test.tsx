@@ -149,11 +149,11 @@ test('a typed note is stored, stamped with the playing track', async ($, on) => 
   })
 
   const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
-  await $.ui.input({ plugin: 'buddy', key: 'note', text: 'fixed the picqer sync' })
+  await $.ui.input({ plugin: 'buddy', key: 'note', text: 'fixed the login redirect' })
   expect(saved.length).toBe(1)
   const notes = saved[0] as { text: string; track: { name: string } | null }[]
   expect(notes.length).toBe(1)
-  expect(notes[0]?.text).toBe('fixed the picqer sync')
+  expect(notes[0]?.text).toBe('fixed the login redirect')
   expect(notes[0]?.track?.name).toBe('Sorrow - Radio Edit')
   await ui.unmount()
 })
@@ -200,7 +200,7 @@ test('an edit shows up in the session telemetry with its line delta', async ($, 
   await time.settle()
 
   const tel = written.telemetry as { shape: string; value: { files: { path: string; plus: number; minus: number }[]; filesTotal: number; callsPerMin: number } }
-  expect(tel.shape).toBe('tel-3')
+  expect(tel.shape).toBe('tel-4')
   expect(tel.value.files).toEqual([{ path: '/work/src/a.ts', plus: 2, minus: 1 }])
   expect(tel.value.filesTotal).toBe(1)
   expect(tel.value.callsPerMin).toBe(1)
@@ -295,7 +295,7 @@ test('the plan windows the engine reports are drawn as a usage row, five-hour fi
   await time.settle()
 
   const tel = written.telemetry as { shape: string; value: { contextPct: number; limits: { kind: string; percentUsed: number; resetsAt: number | null }[] } }
-  expect(tel.shape).toBe('tel-3')
+  expect(tel.shape).toBe('tel-4')
   expect(tel.value.contextPct).toBe(25)
   expect(tel.value.limits.map(one => one.kind)).toEqual(['five_hour', 'seven_day'])
   expect(tel.value.limits[0]?.percentUsed).toBe(42)
@@ -394,8 +394,8 @@ test('/soundtrack hide drops a section from the pane and the choice is stored', 
   await ui.unmount()
 
   const answer = await $.command.run({ command: 'soundtrack', args: 'hide notes', origin: { kind: 'composer' }, presentation: PRESENTATION })
-  expect(answer.text).toBe('Pane sections: playlists, session, usage.')
-  expect(stored['soundtrack:sections']).toEqual({ playlists: true, notes: false, session: true, usage: true })
+  expect(answer.text).toBe('Pane sections: playlists, drinks, session, usage.')
+  expect(stored['soundtrack:sections']).toEqual({ playlists: true, notes: false, drinks: true, session: true, usage: true })
 
   ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
   expect(await ui.find({ type: 'Text', text: /^Notes · / })).toBeFalsy()
@@ -403,5 +403,142 @@ test('/soundtrack hide drops a section from the pane and the choice is stored', 
   await ui.unmount()
 
   const bad = await $.command.run({ command: 'soundtrack', args: 'hide pets', origin: { kind: 'composer' }, presentation: PRESENTATION })
-  expect(bad.text).toBe('No section "pets". The sections are playlists, notes, session, usage, or all.')
+  expect(bad.text).toBe('No section "pets". The sections are playlists, notes, drinks, session, usage, or all.')
+})
+
+/** Answers `state.get` and `state.set` from one map, so what the hooks write is what the pane reads next. */
+function liveState(on: On, initial: Record<string, unknown> = {}) {
+  const values: Record<string, unknown> = { ...initial }
+  on('state.get', (_, e: { key?: string }) => {
+    const key = String(e.key)
+    return key in values ? { value: { value: values[key], version: 2 } } : { value: { value: undefined, version: 0 } }
+  })
+  on('state.set', (_, e: { key?: string; value?: unknown }) => {
+    values[String(e.key)] = e.value
+    return { value: { isSet: true, version: 2 } }
+  })
+  return values
+}
+
+/** A store in memory, answering the plugin's `$.store` calls: the object handed in is the store. */
+function memoryStore(on: On, initial: Record<string, unknown> = {}) {
+  const values = initial
+  on('store.get', (_, e: { key: string }) => ({ value: values[e.key] }))
+  on('store.set', (_, e: { key: string; value: unknown }) => {
+    values[e.key] = e.value
+    return { value: undefined }
+  })
+  return values
+}
+
+const run = (args: string) => ({ command: 'soundtrack', args, origin: { kind: 'composer' as const }, presentation: PRESENTATION })
+
+test('the strip draws about 30 frames a second while it guesses, and 4 once paused bars have settled', async ($, on) => {
+  const time = clock(on)
+  const state = liveState(on, { nowPlaying: { shape: 'np-4', value: SORROW } })
+  let blits = 0
+  on('ui.blit', (_, e: { key?: string }) => {
+    if (e.key === 'eq') blits += 1
+    return { value: {} }
+  })
+
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  await time.advance(300)
+  blits = 0
+  await time.advance(1000)
+  expect(blits).toBeGreaterThanOrEqual(26)
+  expect(blits).toBeLessThanOrEqual(34)
+
+  // Paused: the bars fall back to rest at the smooth rate, then the strip idles.
+  state.nowPlaying = { shape: 'np-4', value: { ...SORROW, isPlaying: false } }
+  await time.advance(3000)
+  blits = 0
+  await time.advance(1000)
+  expect(blits).toBeGreaterThanOrEqual(3)
+  expect(blits).toBeLessThanOrEqual(5)
+  await ui.unmount()
+})
+
+test('cups: the buttons and /soundtrack drink log per day, the water goal toasts once, undo takes the last back', async ($, on) => {
+  clock(on)
+  const store = memoryStore(on, { 'soundtrack:drinks': { '2026-10-27': { coffee: 4, water: 6 } } })
+  liveState(on)
+  const toasts: string[] = []
+  on('ui.toast', (_, e: { text: string }) => {
+    toasts.push(e.text)
+    return { value: undefined }
+  })
+
+  let ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  expect(await ui.find({ type: 'Button', key: 'cup-tea' })).toBeTruthy()
+  await $.ui.press({ plugin: 'buddy', key: 'cup-coffee' })
+  await $.ui.press({ plugin: 'buddy', key: 'cup-water' })
+  await ui.unmount()
+  expect(store['soundtrack:drinks']).toEqual({ '2026-10-27': { coffee: 4, water: 6 }, '2026-10-28': { coffee: 1, tea: 0, water: 1 } })
+
+  expect((await $.command.run(run('drink water 7'))).text).toBe('Logged 7 waters. Today: coffee 1 · tea 0 · water 8/8.')
+  expect(toasts).toEqual(['Water goal reached: 8 glasses today.'])
+  await $.command.run(run('drink water'))
+  expect(toasts.length).toBe(1)
+  expect((await $.command.run(run('drink undo'))).text).toBe('Took back one water: coffee 1 · tea 0 · water 8/8.')
+
+  ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  expect((await ui.find({ type: 'Text', text: /^coffee 1/ }))?.text).toBe('coffee 1 · tea 0 · water 8/8 ')
+  await ui.unmount()
+
+  const report = (await $.command.run(run('drinks'))).text
+  expect(report).toContain('Today: coffee 1 · tea 0 · water 8/8.')
+  expect(report).toContain('Seven-day average: coffee 0.7 · tea 0.0 · water 2.0 a day.')
+  expect(report).toContain('Tue 27/10  coffee 4  tea 0  water 6')
+  expect((await $.command.run(run('drink goal 10'))).text).toBe('Water goal: 10 glasses a day.')
+  expect(store['soundtrack:waterGoal']).toBe(10)
+})
+
+/** The mocks a session start needs, recording the commands it registers. */
+function startable(on: On, store: Record<string, unknown>) {
+  const registered: string[] = []
+  mock.env(on, { HOME: '/home/test' })
+  memoryStore(on, store)
+  on('fs.read', () => {
+    throw new Error('no auth file')
+  })
+  on('command.register', (_, e: { name: string }) => {
+    registered.push(e.name)
+    return { value: { command: e.name } }
+  })
+  on('ui.open', () => ({ value: { isPlaced: true } }))
+  on('session.start', (_, e: { cwd: string }) => ({ cwd: e.cwd }))
+  return registered
+}
+
+test('a new install starts without the short commands, and /soundtrack shortcuts on brings them', async ($, on) => {
+  const time = clock(on)
+  const store: Record<string, unknown> = {}
+  const registered = startable(on, store)
+  liveState(on)
+
+  await $.session.start({ cwd: '/work', surface: 'terminal', isInteractive: true })
+  await time.settle()
+  expect(registered).toContain('soundtrack')
+  expect(registered).not.toContain('play')
+  expect((await $.command.run({ command: 'play', args: 'focus', origin: { kind: 'composer' }, presentation: PRESENTATION })).text).toBe(
+    'Short commands are off: use /soundtrack play focus. "/soundtrack shortcuts on" brings them back.',
+  )
+  // Every verb answers under /soundtrack regardless.
+  expect((await $.command.run(run('note shipped the fix'))).text).toBe('Noted: shipped the fix')
+  expect((await $.command.run(run('shortcuts on'))).text).toBe('Short commands on: /play /pause /skip /volume /vibe /note /notes /drink.')
+  expect(registered).toContain('play')
+  expect(registered).toContain('drink')
+})
+
+test('an install that already has Soundtrack data keeps its short commands', async ($, on) => {
+  const time = clock(on)
+  const store: Record<string, unknown> = { 'soundtrack:playlists': { at: NOW - 60_000, list: [] } }
+  const registered = startable(on, store)
+  liveState(on)
+
+  await $.session.start({ cwd: '/work', surface: 'terminal', isInteractive: true })
+  await time.settle()
+  expect(store['soundtrack:shortcuts']).toBe(true)
+  for (const name of ['play', 'pause', 'skip', 'volume', 'vibe', 'note', 'notes', 'drink']) expect(registered).toContain(name)
 })

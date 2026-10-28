@@ -5,15 +5,24 @@ import type { Beat } from './beat'
 import { BLOCKS, DEFAULT_BG, DIM, GREEN, blankCells, dim, hsv, lerpRgb, packCells } from './raster'
 
 /** How often the strip is repainted, in ms: 30 frames a second. */
-export const TICK_MS = 33
+export const TICK_MS = 16
 export const EQ_ROWS = 8
 /** Bars per terminal cell in the bars view: 2 splits each cell into half-bars with quadrant blocks, 1 keeps eighth-row steps. */
 export const DENSITY_DEFAULT = 2
 // The 3D and ridge views: this many time slices recede up and to the right, two slices per row, one column each.
 export const DEPTH = 16
 const DEPTH_ROWS = DEPTH / 2
-/** Ticks between slices: 100 ms, so the surface holds 1.6 s. */
-export const SLICE_EVERY = 3
+/** Ticks between depth slices in the 3D and ridge views: at 3 a slice every 48 ms, so the surface holds 0.8 s. `/soundtrack slices N` changes it. */
+export const SLICE_EVERY_DEFAULT = 3
+export const SLICE_EVERY_MAX = 12
+export let sliceEvery = SLICE_EVERY_DEFAULT
+export function setSliceEvery(n: number) {
+  sliceEvery = Math.max(1, Math.min(SLICE_EVERY_MAX, Math.round(n)))
+}
+/** How long the depth axis spans at the current slice rate, in seconds. */
+export function depthSeconds(): number {
+  return (DEPTH * sliceEvery * TICK_MS) / 1000
+}
 export const VIEWS = ['bars', '3d', 'ridge'] as const
 export type EqView = (typeof VIEWS)[number]
 export const PALETTES = ['rainbow', 'green', 'fire', 'vu', 'vertical'] as const
@@ -135,7 +144,7 @@ export function stripCells(
   // Axis row: the labels under their frequencies; no rule, so the axis stays quiet.
   const axisRow = area
   if (view !== 'bars') {
-    const label = `<- ${((DEPTH * SLICE_EVERY * TICK_MS) / 1000).toFixed(1)}s`
+    const label = `<- ${depthSeconds().toFixed(1)}s`
     for (let k = 0; k < label.length; k++) putAt(axisRow, across + 2 + k, label.charAt(k), 0x6c6c6c)
   }
   let lastEnd = -3
