@@ -99,10 +99,15 @@ function depthColor(h: number, depth: number, x: number): number {
   const hue = 35 + x * 240 + depth * 25
   // Loud is bright, not pale: the hue stays saturated and only the top of a peak goes towards white.
   // A wide range from quiet to loud, since Claude Code draws a Raster in 16 steps per channel.
-  const value = (0.3 + 0.7 * Math.sqrt(h)) * (1 - depth * 0.62)
+  // Brightness is loudness alone: an older slice is as bright as it was loud; depth shows in the hue and the layout.
+  const value = 0.3 + 0.7 * Math.sqrt(h)
   const peak = Math.max(0, h - 0.85) / 0.15
-  const sat = (0.9 + depth * 0.1) * (1 - peak * 0.45 * (1 - depth))
-  return hsv(hue % 360, Math.max(0.05, Math.min(1, sat)), Math.min(1, value + peak * 0.1))
+  const sat = 0.9 * (1 - peak * 0.45 * (1 - depth))
+  const color = hsv(hue % 360, Math.max(0.05, Math.min(1, sat)), Math.min(1, value + peak * 0.1))
+  // Age shows as colour strength: an older slice fades towards a grey as bright as its own colour looks,
+  // so it keeps the brightness it was loud at without turning pale.
+  const lum = Math.round(0.2126 * ((color >> 16) & 255) + 0.7152 * ((color >> 8) & 255) + 0.0722 * (color & 255))
+  return lerpRgb(color, (lum << 16) | (lum << 8) | lum, depth * 0.75)
 }
 
 /** A 3D bar's body: a dark, rich version of its crest, a third of the way up from the floor. */
