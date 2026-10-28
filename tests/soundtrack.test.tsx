@@ -105,7 +105,7 @@ test('an empty pane says nothing is playing and waits for notes', async ($, on) 
   expect((await ui.find({ type: 'Text', text: /Nothing playing/ }))?.text).toBe('♫ Nothing playing on Spotify (connector)')
   expect((await ui.find({ type: 'Text', text: /No notes here yet/ }))?.text).toBe('No notes here yet.')
   const strip = await ui.find({ type: 'Raster', key: 'eq' })
-  expect(strip?.props.rows).toBe(10)
+  expect(strip?.props.rows).toBe(18) // the ridge view, the default
   expect(await ui.find({ type: 'Input', key: 'note' })).toBeTruthy()
   await ui.unmount()
 })

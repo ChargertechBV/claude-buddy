@@ -34,6 +34,8 @@ const AXIS_HIGH_HZ = 16000
 const AXIS_LABELS: [number, string][] = [[60, '60'], [100, '100'], [200, '200'], [500, '500'], [1000, '1k'], [2000, '2k'], [5000, '5k'], [10000, '10k']]
 // Two half-bars in one cell: index = left * 3 + right, each 0 empty, 1 lower half, 2 full.
 const QUADS = [0x20, 0x2597, 0x2590, 0x2596, 0x2584, 0x259f, 0x258c, 0x2599, 0x2588]
+/** How many dot rows under the ridge view's front line the bar takes to fade into its own shade: two cell rows. */
+const FADE_DOTS = 8
 const SURFACE_BODY_FLOOR = 0x0d3b2e // the darkest a 3D bar's body gets, still green
 
 /** m:ss from milliseconds. */
@@ -325,8 +327,10 @@ function drawRidge(words: Uint32Array, columns: number, area: number, across: nu
     if (t === 0) {
       for (const pt of pts) {
         // Darker than the line, and darker still where it is quiet, so loudness reads in the body too.
-        const body = dim(depthColor(pt.h, 0, (pt.x - xShift) / Math.max(1, across * 2 - 1)), 0.3 + 0.35 * pt.h)
-        for (let y = pt.y + 1; y <= baseDot; y++) setDot(pt.x, y, body)
+        const top = depthColor(pt.h, 0, (pt.x - xShift) / Math.max(1, across * 2 - 1))
+        const body = dim(top, 0.3 + 0.35 * pt.h)
+        // Under the line the bar fades from the line's colour into its own over two cell rows, so the edge is soft.
+        for (let y = pt.y + 1; y <= baseDot; y++) setDot(pt.x, y, lerpRgb(top, body, Math.min(1, (y - pt.y) / FADE_DOTS)))
       }
     }
     // Then the contour, a continuous line through the points.

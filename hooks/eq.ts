@@ -35,7 +35,7 @@ let eqColumns = 0
 let eqHeights: number[] = []
 let eqDensity = DENSITY_DEFAULT
 let eqPalette: Palette = 'rainbow'
-let eqView: EqView = 'bars'
+let eqView: EqView = 'ridge'
 let eqModeNow: 'live' | 'guess' = 'guess'
 let slices: number[][] = []
 // Buddy's pet, as last read; the pane draws it and it dances on the beat.
@@ -103,7 +103,7 @@ export async function loadEqSettings($: $) {
   const every = await $.store.get('soundtrack:sliceEvery')
   setSliceEvery(typeof every === 'number' && Number.isFinite(every) ? every : SLICE_EVERY_DEFAULT)
   const view = await $.store.get('soundtrack:eqView')
-  eqView = typeof view === 'string' && (VIEWS as readonly string[]).includes(view) ? (view as EqView) : 'bars'
+  eqView = typeof view === 'string' && (VIEWS as readonly string[]).includes(view) ? (view as EqView) : 'ridge'
   const palette = await $.store.get('soundtrack:eqPalette')
   eqPalette = typeof palette === 'string' && (PALETTES as readonly string[]).includes(palette) ? (palette as Palette) : 'rainbow'
   const lead = await $.store.get('soundtrack:beatLeadMs')
