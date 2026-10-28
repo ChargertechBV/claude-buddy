@@ -1,0 +1,5 @@
+{
+  "name": "claude-buddy",
+  "owner": { "name": "ChargertechBV" },
+  "plugins": [{ "name": "buddy", "source": "./" }]
+}
