@@ -136,7 +136,14 @@ export const register: Register = on => {
     return {}
   })
 
-  on('command.run', { command: 'buddy' }, async ($, e) => runCommand($, e.args))
+  // A hook that throws or outruns its budget is skipped and the person only reads "no command.run hook answered it";
+  // answer with what went wrong instead.
+  on('command.run', { command: 'buddy' }, async ($, e) => runCommand($, e.args)).catch(($, e, next) => ({
+    text:
+      next.error.kind === 'timeout'
+        ? `/buddy ${e.args.trim()} took too long and was cut off${next.error.message ? `: ${next.error.message}` : ''}.`
+        : `/buddy ${e.args.trim()} failed: ${next.error.message ?? 'unknown error'}`,
+  }))
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const shown = await viewOf($)

@@ -10,6 +10,7 @@ import { PET_COLUMNS, PET_ROWS, petCells } from './sprite'
 import type { PetView } from './sprite'
 import { mmss } from './strip'
 import type { Progress } from './strip'
+import { petIt } from './buddy-life'
 import { captureNote, musicOf, publishMusic, restartCapture, runCapture } from './capture'
 import { addDrink, drinksOf, loadDrinks } from './drinks'
 import { eqModeOf, lastPetName, loadEqSettings, readPet, sawPet, stripFrame, wakeFrames } from './eq'
@@ -224,7 +225,14 @@ export const registerSoundtrack = (on: On) => {
             )}
             <Box>
               {pet !== null && !isMobile && (
-                <Button key="pet-it" hotkey="h" onPress={() => void $.command.run({ command: 'buddy', args: 'pet' }).catch(() => undefined)}>
+                <Button
+                  key="pet-it"
+                  hotkey="h"
+                  onPress={() => {
+                    // Not $.command.run('/buddy pet'): a plugin's own run skips its own command.run hook, so nobody answered.
+                    void petIt($).catch(() => undefined)
+                  }}
+                >
                   pet
                 </Button>
               )}

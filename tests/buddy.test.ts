@@ -788,3 +788,24 @@ test('/buddy play opens Flappy Duck; a crash pays out, and the restart button re
   expect((await shown()).some(t => t.includes('to start'))).toBe(true)
   await pane.unmount()
 })
+
+const SOUNDTRACK_PANE = {
+  plugin: 'buddy',
+  component: 'Pane',
+  requestId: 'soundtrack',
+  props: { title: 'Soundtrack', isFocused: false, bodyColumns: 48, placement: 'dock', scroll: { offset: 0, bodyRows: 30 }, view: {} },
+} as const
+
+test("the Soundtrack pane's pet button pets the pet (not through /buddy pet, which skips the mod's own hook)", async ($, on) => {
+  const { clock } = engine(on)
+  await start($)
+  await clock.advance(3000)
+  const pane = await $.ui.mount({ ...SOUNDTRACK_PANE, surface: 'terminal' })
+  await pane.press({ key: 'pet-it' })
+  const band = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  const said = (await band.findAll({ type: 'Text', in: 'pet' })).map(t => t.text).join('\n')
+  const lines = [...QUIPS.pet!.sweet, ...QUIPS.pet!.snark].map(l => l.replaceAll('{species}', ''))
+  expect(lines.some(l => said.includes(l.split('{')[0]!.trim()))).toBe(true)
+  await band.unmount()
+  await pane.unmount()
+})
